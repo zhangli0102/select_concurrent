@@ -29,39 +29,39 @@ int main(int argc, char * argv[])
 	bind(lfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
 	listen(lfd, 128);
 
-	fd_set rset, allset;
-	maxfd = lfd;
+	fd_set rset, allset;  //define read set
+	maxfd = lfd;          //maximum file descriptor
 
-	FD_ZERO(&allset);
-	FD_SET(lfd, &allset);
+	FD_ZERO(&allset);     //put zero on every position of backup set
+	FD_SET(lfd, &allset); //set lfd in allset to 1(it is a bitmap)
 
 	while(1)
 	{
-		rset = allset;
-		nready = select(maxfd+1, &rset, NULL, NULL, NULL);
+		rset = allset;    //copy allset to rset for working in one loop
+		nready = select(maxfd+1, &rset, NULL, NULL, NULL);   //using select as secretary
 		if(nready < 0)
 		{
 			perror("select error");
 		}
 		
-		if(FD_ISSET(lfd, &rset))
+		if(FD_ISSET(lfd, &rset))     //lfd need to establish connect for a new client
 		{
-			cfd = accept(lfd, (struct sockaddr*)&clit_addr, &clit_addr_len);
-			FD_SET(cfd, &allset);
+			cfd = accept(lfd, (struct sockaddr*)&clit_addr, &clit_addr_len);  //new file descriptor created for connection
+			FD_SET(cfd, &allset);   //update allset fd_set
 			if(maxfd < cfd)
-				maxfd = cfd;
-			if(0 == --nready)
-				continue; 
+				maxfd = cfd;        //update maxfd
+			if(0 == --nready)   
+				continue;           //only lfd is 1 in the set, no connecting to client job to deal with
 		}
 		for(i = lfd + 1; i <= maxfd; i++)
 		{
-			if(FD_ISSET(i, &rset))
+			if(FD_ISSET(i, &rset))  //this connection to client has some work to do
 			{
 				n = read(i, buf, sizeof(buf));
 				if (n == 0)
 				{
 					close(i);
-					FD_CLR(i, &allset);
+					FD_CLR(i, &allset);     //update allset fd_set
 				}
 				else if (n > 0)
 				{
